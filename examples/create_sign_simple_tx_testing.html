@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="../bootstrap/css/bootstrap.min.css" />
+	
+	<script src="../jquery.min.js"></script>
+	<script type="text/javascript" src="../bootstrap/bootstrap.min.js"></script>
+	<script src="../underscore-min.js"></script>
+	<script src="../all.bundle.js"></script>
+</head>
+<body>
+	<div class="container">
+		<h4>Step 2: Create and sign a Transaction for funding Multi-signature Address</h4>
+		<p class="alert alert-warning">Be carefull! Private keys will be saved in browser's local Storage, <b>reset keys when you have completed all the steps.</b></p>
+		<form class="form-horizontal" id="form" onsubmit="return false">
+			<fieldset>
+	    		<legend>Input</legend>
+				<div class="control-group">
+					<label class="control-label" for="inputTxin">Txin</label>
+					<div class="controls">
+						<input class="input-xxlarge" name="inputTxin" type="text" id="inputTxin">
+						<span class="help-block">hash for input transaction.</span>
+					</div>
+				</div>
+				<div class="control-group">
+					<label class="control-label" for="inputVout">Vout</label>
+					<div class="controls">
+						<input class="input-xxlarge" name="inputVout" type="text" id="inputVout" value="0" placeholder="0">
+						<span class="help-block">out index to be used from last transaction.</span>
+					</div>
+				</div>
+				<div class="control-group">
+					<label class="control-label" for="inputKey">Private key</label>
+					<div class="controls">
+						<input class="input-xxlarge"  name="inputKey" type="text" id="inputKey" placeholder="Private key">
+						<span class="help-block">Private key to sign the above input.</span>
+					</div>
+				</div>
+			</fieldset>
+			<fieldset>
+	    		<legend>Output</legend>
+				<div class="control-group">
+					<label class="control-label" for="inputAddress">Multisig-Address</label>
+					<div class="controls">
+						<input class="input-xxlarge" name="inputAddress" type="text" id="inputAddress" placeholder="Multisig-Address">
+					</div>
+				</div>
+				<div class="control-group">
+					<label class="control-label" for="inputAmount">Amount</label>
+					<div class="controls">
+						<input class="input-midium"  name="inputAmount" type="text" id="inputAmount" placeholder="0.0006">
+					</div>
+				</div>
+				<div class="control-group">
+					<div class="controls">
+						<button type="submit" class="btn btn-primary" id="btnCreate">Create and Sign Transaction</button>
+						<button type="submit" class="btn btn-danger" id="btnResetKeys">Reset keys</button>
+					</div>
+				</div>
+			</fieldset>
+			<div class="control-group">
+				<label class="control-label" for="inputRawTx">Raw Transaction</label>
+				<div class="controls">
+					<textarea class="input-xxlarge" readonly name="inputRawTx" type="text" id="inputRawTx" rows="7"></textarea>
+					<div class="help-block hide" id="infoText">Dispatch this transaction on netwrork using "sendrawtransaction" command <br>then record the transaction id for next step.</div>
+					<br><br>
+				</div>
+			</div>
+			<div class="control-group hide" id="nextBtn">
+				<div class="controls">
+					<a href="create_tx_partial_sign_at_server.html" class="btn" id="btnNext">Next ></a>
+				</div>
+			</div>
+		</form>
+	</div>
+	<script type="text/javascript">
+		$(document).ready(function(){
+			if (localStorage.cc_multisigAddress) {
+				$('#inputAddress').val(localStorage.cc_multisigAddress)
+			};
+		});
+		$('#btnResetKeys').on('click', function(){
+			localStorage.cc_privatekeys = '';
+			window.location.reload();
+		});
+
+		$('#btnCreate').on('click', function(){
+			$('#nextBtn').hide();
+			$('#infoText').hide();
+			var txin 	= $('#inputTxin').val();
+			var vout 	= $('#inputVout').val();
+			var key 	= $('#inputKey').val();
+			var address = $('#inputAddress').val();
+			var amount 	= $('#inputAmount').val();
+			$('.control-group').removeClass('error');
+			if (!txin) {
+				$('#inputTxin').closest('.control-group').addClass('error');
+				return;
+			};
+			if (!vout || parseInt(vout)!=vout) {
+				$('#inputVout').closest('.control-group').addClass('error');
+				return;
+			};
+			if (!key) {
+				$('#inputKey').closest('.control-group').addClass('error');
+				return;
+			};
+			if (!address) {
+				$('#inputAddress').closest('.control-group').addClass('error');
+				return;
+			};
+			if (!amount || parseFloat(amount)!=amount) {
+				$('#inputAmount').closest('.control-group').addClass('error');
+				return;
+			};
+
+			createTransaction(txin, parseInt(vout), address, parseFloat(amount), key)
+		});
+
+		function createTransaction(txin, vout, address, amount, key){
+			var scale 	= 1e8;
+
+			var SIGHASH_ALL = 1;
+
+			//create a transaction
+			var multiSigScript 	= CC.script.createOutputScript(address); //address from create_multisig_address.html
+			var tx = new CC.Transaction({
+				version:1,
+				outs:[{
+					script: multiSigScript,
+					value: CC.multiply(amount, scale)+''
+				}]
+			});
+			tx.addInput({hash:txin}, vout);
+			
+			//create signing key
+			try{
+				var signKey 		= CC.coinkey.fromWif( key );
+			}catch(e){
+				$('#inputKey').closest('.control-group').addClass('error');
+				return;
+			}
+
+			//sign transaction -> START ######################################
+			var scriptPubKey 	= CC.script.createOutputScript(signKey.publicAddress);
+			var txhash 			= tx.hashTransactionForSignature(scriptPubKey, 0, SIGHASH_ALL);
+			signature 			= CC.ecdsa.sign(txhash, signKey.privateKey);
+
+			var buffer			= CC.toBuffer(CC.ecdsa.serializeSig(signature).concat([SIGHASH_ALL]));
+			
+			var signscript = CC.script.createInputScript(
+				CC.toBytes(buffer),
+				CC.toBytes(signKey.publicKey)
+			);
+
+			tx.ins[0].script = signscript;
+			//sign transaction  ->  END ######################################
+			var rawTx = tx.toHex();
+			console.log('sendrawtransaction '+rawTx)
+			$('#inputRawTx').val(rawTx);
+			localStorage.cc_rawTx = rawTx;
+			localStorage.cc_amount = amount;
+			$('#nextBtn').show();
+			$('#infoText').show();
+		}
+		
+	</script>
+</body>
+</html>

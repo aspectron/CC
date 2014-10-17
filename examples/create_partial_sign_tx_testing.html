@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<script src="../underscore-min.js"></script>
+	<script src="../all.bundle.js"></script>
+</head>
+<body>
+	<script type="text/javascript">
+
+		var scale 		= 1e8;
+
+		var wifKeys = [
+			"KzkCJQxLiyrFrCaJQyfMFtMxodVr8HVn71hkjzZfmDMtEeSDXzgP",
+			"KzY29fXFCeTEvGteNGuCbzzDyPrdmwcfPh9VCVTcuNkWtbHskFQd",
+			"L3zPkn92jt8uR5TKxhjtdJRDBhrYgwyGq8N2CJtxuT1NrXFBwk75"
+		];
+
+		//create a transaction
+		var toScript 	= CC.script.createOutputScript('17cryX8AdeFZUsfUn4Zpaok484sgcgxkGy');
+		var tx = new CC.Transaction({
+			version:1,
+			outs:[{
+				script:toScript,
+				value:(0.0008*scale)+''
+			}]
+		});
+		tx.addInput({hash:'d1f03036eece3fe50ef451cabeea0dca209b4c62ba18a35cb50ef3be76d2c090'}, 0);
+
+
+		var pubKeys = [], pubKeysHex=[];
+		_.each(wifKeys, function(wif){
+			var k = CC.coinkey.fromWif( wif );
+			k.compressed = false;
+			pubKeysHex.push(k.publicKey.toString('hex'))
+			pubKeys.push(k.publicKey.toJSON().data);
+		});
+
+		var redeemScript = CC.script.createMultiSigOutputScript(2, pubKeys);
+		console.log(" createmultisig 2 '"+ JSON.stringify(pubKeysHex)+"'")
+		console.log('redeemScript', redeemScript)
+		//create signing key
+
+		var inputIndex = 0;
+
+		//sign with one key
+		tx.signMultiSig(inputIndex, redeemScript, wifKeys[0])//server code
+
+		//TODO: send raw/json tx to client
+
+		//TODO: create tx from raw/json
+
+		tx.signMultiSig(inputIndex, redeemScript, wifKeys[1])//client code
+		
+		//sign transaction  ->  END ######################################
+
+		//TODO: send raw/json tx to server for dispatch
+		/*tx.serialize().map(function(x){
+			//console.log('x', x)
+		})*/
+		var rawTx = tx.toHex();
+		console.log('sendrawtransaction '+rawTx)
+		var tx2 = CC.Transaction.fromHex(rawTx)
+
+		console.log('sendrawtransaction ',   tx2.toHex() == rawTx)
+	</script>
+</body>
+</html>

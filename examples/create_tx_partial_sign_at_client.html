@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="js/bootstrap/css/bootstrap.min.css" />
+	
+	<script type="text/javascript" src="js/jquery.min.js"></script>
+	<script type="text/javascript" src="js/bootstrap/bootstrap.min.js"></script>
+	<script type="text/javascript" src="js/underscore-min.js"></script>
+	<script type="text/javascript" src="../cc-min.js"></script>
+</head>
+<body>
+	<div class="container">
+		<h4>Step 4: Sign a Partialy signed transaction for spending from Multi-signature Address <br> Signing step 2</h4>
+		<p class="alert alert-warning">Be carefull! Private keys will be saved in browser's local Storage, <b>reset keys when you have completed all the steps.</b></p>
+		<form class="form-horizontal" id="form" onsubmit="return false">
+			<div class="control-group hide">
+				<label class="control-label" for="inputCurrency">Currency</label>
+				<div class="controls">
+					<select class="input-xxlarge"  name="inputCurrency" id="inputCurrency">
+						<option value="LTC" selected>LTC</option>
+						<option value="BTC">BTC</option>
+					</select>
+				</div>
+			</div>
+			<fieldset>
+				<legend>Input</legend>
+				<div class="control-group">
+					<label class="control-label" for="inputInputRawTx">Partialy signed raw transaction</label>
+					<div class="controls">
+						<textarea class="input-xxlarge" readonly name="inputInputRawTx" type="text" id="inputInputRawTx" rows="7"></textarea>
+					</div>
+				</div>
+				<div class="control-group">
+					<label class="control-label" for="inputRedeemScript">Redeem Script</label>
+					<div class="controls">
+						<textarea class="input-xxlarge" readonly name="inputRedeemScript" type="text" id="inputRedeemScript" rows="7"></textarea>
+					</div>
+				</div>
+				<div class="control-group">
+					<label class="control-label" for="inputKey">Private key (Second Signing key)</label>
+					<div class="controls">
+						<input class="input-xxlarge"  name="inputKey" type="text" id="inputKey" placeholder="Private key">
+						<span class="help-block">Private key to sign the transaction.</span>
+					</div>
+				</div>
+			</fieldset>
+			<div class="control-group">
+				<div class="controls">
+					<button type="submit" class="btn btn-primary" id="btnCreate">Sign Transaction</button>
+					<button type="submit" class="btn btn-danger" id="btnResetKeys">Reset keys</button>
+				</div>
+			</div>
+			<div class="control-group">
+				<label class="control-label" for="inputRawTx">Raw Transaction</label>
+				<div class="controls">
+					<textarea class="input-xxlarge" readonly name="inputRawTx" type="text" id="inputRawTx" rows="7"></textarea>
+					<b id="signingInfo" class="text-info"></b>
+					<div class="help-block hide" id="infoText">Dispatch this transaction on netwrork using "sendrawtransaction" command.</div>
+					<br><br>
+				</div>
+			</div>
+			<div class="control-group hide" id="nextBtn">
+				<div class="controls">
+					<a href="create_tx_partial_sign_at_client.html" class="btn" id="btnNext">Next ></a>
+				</div>
+			</div>
+		</form>
+	</div>
+	<script type="text/javascript">
+		$(document).ready(function(){
+			if (localStorage.cc_privatekeys) {
+				var keys = localStorage.cc_privatekeys.split(',');
+				$('#inputKey').val(keys[1]);
+			};
+			if (localStorage.cc_partialySignedRawTx) {
+				$('#inputInputRawTx').val( localStorage.cc_partialySignedRawTx );
+			};
+			if (localStorage.cc_currency) {
+				$('[name="inputCurrency"]').val(localStorage.cc_currency);
+			};
+		});
+		$('#btnResetKeys').on('click', function(){
+			localStorage.cc_privatekeys = '';
+			window.location.reload();
+		});
+
+		$('#btnCreate').on('click', function(){
+			var rawTx 	= $('#inputInputRawTx').val();
+			var key 	= $('#inputKey').val();
+			localStorage.cc_currency = $('[name="inputCurrency"]').val();
+
+			$('.control-group').removeClass('error');
+			if (!rawTx) {
+				$('#inputInputRawTx').closest('.control-group').addClass('error');
+				return;
+			};
+			if (!key) {
+				$('#inputKey').closest('.control-group').addClass('error');
+				return;
+			};
+
+			signTransaction(rawTx, key)
+		});
+		function signTransaction(rawTx, key){
+			$('#infoText').hide();
+			$('#signingInfo').html('');
+
+			var inputIndex 			= 0, currencyInfo = CC.coininfo( localStorage.cc_currency );
+
+			//key validation
+			try{
+				var signKey 		= CC.coinkey.fromWif( key , currencyInfo.versions);
+			}catch(e){
+				$('#inputKey').closest('.control-group').addClass('error');
+				return;
+			}
+
+			//create a transaction
+			try{
+				var tx 				= new CC.Transaction.fromHex(rawTx);
+			}catch(e){
+				$('#inputInputRawTx').closest('.control-group').addClass('error');
+				return;
+			}
+
+			var chunks 			= tx.ins[inputIndex].script.chunks;
+			var redeemScript 	= (chunks[chunks.length-1]==174) ? tx.ins[inputIndex].script : new CC.script(chunks[chunks.length-1]);
+
+			var redeemScriptHex = CC.toHex( redeemScript.buffer );
+			console.log({redeemScript: redeemScript, tx:tx, redeemScriptHex: redeemScriptHex });
+			$('#inputRedeemScript').val( redeemScriptHex )
+
+			//sign with one key
+			tx.signMultiSig(inputIndex, redeemScript, signKey);
+			var isComplete = tx.isSigningComplete(inputIndex);
+			$('#signingInfo').html('Is complete: '+ (isComplete?'Yes':'No'));
+
+			var rawTx = tx.toHex();
+			console.log('rawTx:', rawTx)
+			$('#inputRawTx').val(rawTx);
+			$('#infoText').show();
+		}
+	</script>
+</body>
+</html>

@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="js/bootstrap/css/bootstrap.min.css" />
+	
+	<script type="text/javascript" src="js/jquery.min.js"></script>
+	<script type="text/javascript" src="js/bootstrap/bootstrap.min.js"></script>
+	<script type="text/javascript" src="js/underscore-min.js"></script>
+	<script type="text/javascript" src="../cc-min.js"></script>
+</head>
+<body>
+	<div class="container">
+		<h4>Step 3: Create and sign a Transaction for spending from Multi-signature Address <br> Signing step 1</h4>
+		<p class="alert alert-warning">Be carefull! Private keys will be saved in browser's local Storage, <b>reset keys when you have completed all the steps.</b></p>
+		<form class="form-horizontal" id="form" onsubmit="return false">
+			<div class="control-group">
+				<label class="control-label" for="inputCurrency">Currency</label>
+				<div class="controls">
+					<select class="input-xxlarge"  name="inputCurrency" id="inputCurrency">
+						<option value="LTC" selected>LTC</option>
+						<option value="BTC">BTC</option>
+					</select>
+				</div>
+			</div>
+			<fieldset>
+	    		<legend>Input</legend>
+				<div class="control-group">
+					<label class="control-label" for="inputTxin">Txin</label>
+					<div class="controls">
+						<input class="input-xxlarge" name="inputTxin" type="text" id="inputTxin" placeholder="Transaction id from Step 2">
+						<span class="help-block">hash for input transaction.</span>
+					</div>
+				</div>
+				<div class="control-group">
+					<label class="control-label" for="inputVout">Vout</label>
+					<div class="controls">
+						<input class="input-xxlarge" name="inputVout" type="text" id="inputVout" value="0" placeholder="0">
+						<span class="help-block">out index to be used from last transaction.</span>
+					</div>
+				</div>
+				<div class="control-group">
+					<label class="control-label" for="inputKey">Private key (First Signing key)</label>
+					<div class="controls">
+						<input class="input-xxlarge"  name="inputKey" type="text" id="inputKey" placeholder="Private key">
+						<span class="help-block">Private key to sign the above input.</span>
+					</div>
+				</div>
+				<div class="control-group">
+					<label class="control-label" for="inputRedeemScript">Redeem Script</label>
+					<div class="controls">
+						<textarea class="input-xxlarge" name="inputRedeemScript" type="text" id="inputRedeemScript" rows="7"></textarea>
+					</div>
+				</div>
+			</fieldset>
+			<fieldset>
+	    		<legend>Output</legend>
+				<div class="control-group">
+					<label class="control-label" for="inputAddress">To Address</label>
+					<div class="controls">
+						<input class="input-xxlarge" name="inputAddress" type="text" id="inputAddress" placeholder="To Address">
+					</div>
+				</div>
+				<div class="control-group">
+					<label class="control-label" for="inputAmount">Amount</label>
+					<div class="controls">
+						<input class="input-midium"  name="inputAmount" type="text" id="inputAmount" placeholder="0.0006">
+					</div>
+				</div>
+				<div class="control-group">
+					<div class="controls">
+						<button type="submit" class="btn btn-primary" id="btnCreate">Create and Sign Transaction</button>
+						<button type="submit" class="btn btn-danger" id="btnResetKeys">Reset keys</button>
+					</div>
+				</div>
+			</fieldset>
+			<div class="control-group">
+				<label class="control-label" for="inputRawTx">Raw Transaction</label>
+				<div class="controls">
+					<textarea class="input-xxlarge" readonly name="inputRawTx" type="text" id="inputRawTx" rows="7"></textarea>
+					<b id="signingInfo" class="text-info"></b>
+					<br><br>
+				</div>
+			</div>
+			<div class="control-group hide" id="nextBtn">
+				<div class="controls">
+					<a href="create_tx_partial_sign_at_client.html" class="btn" id="btnNext">Next ></a>
+				</div>
+			</div>
+		</form>
+	</div>
+	<script type="text/javascript">
+		$(document).ready(function(){
+			if (localStorage.cc_privatekeys) {
+				var keys = localStorage.cc_privatekeys.split(',');
+				$('#inputKey').val(keys[0])
+			};
+			if (localStorage.cc_amount) {
+				$('#inputAmount').val( localStorage.cc_amount )
+			};
+			if (localStorage.cc_redeemScript) {
+				$('#inputRedeemScript').val( localStorage.cc_redeemScript )
+			};
+			if (localStorage.cc_ps1_address) {
+				$('#inputAddress').val( localStorage.cc_ps1_address )
+			};
+			if (localStorage.cc_ps1_txinhash) {
+				$('#inputTxin').val( localStorage.cc_ps1_txinhash )
+			};
+			if (localStorage.cc_currency) {
+				$('[name="inputCurrency"]').val(localStorage.cc_currency);
+			};
+			
+		});
+		$('#btnResetKeys').on('click', function(){
+			localStorage.cc_privatekeys = '';
+			window.location.reload();
+		});
+
+		$('#btnCreate').on('click', function(){
+			var txin 	= $('#inputTxin').val();
+			var vout 	= $('#inputVout').val();
+			var key 	= $('#inputKey').val();
+			var address = $('#inputAddress').val();
+			var amount 	= $('#inputAmount').val();
+			var redeemScriptHex 	= $('#inputRedeemScript').val();
+			localStorage.cc_currency = $('[name="inputCurrency"]').val();
+			$('#signingInfo').html('');
+
+			$('.control-group').removeClass('error');
+			if (!txin) {
+				$('#inputTxin').closest('.control-group').addClass('error');
+				return;
+			};
+
+			localStorage.cc_ps1_txinhash = txin;
+
+			if (!vout || parseInt(vout)!=vout) {
+				$('#inputVout').closest('.control-group').addClass('error');
+				return;
+			};
+			if (!key) {
+				$('#inputKey').closest('.control-group').addClass('error');
+				return;
+			};
+			if (!address) {
+				$('#inputAddress').closest('.control-group').addClass('error');
+				return;
+			};
+			if (!amount || parseFloat(amount)!=amount) {
+				$('#inputAmount').closest('.control-group').addClass('error');
+				return;
+			};
+
+			if (!redeemScriptHex) {
+				$('#inputRedeemScript').closest('.control-group').addClass('error');
+				return;
+			};
+
+			createTransaction(txin, parseInt(vout), address, parseFloat(amount), key, redeemScriptHex)
+		});
+		function createTransaction(txinhash, vout, address, amount, key, redeemScriptHex){
+			$('#nextBtn').hide();
+			var scale 			= 1e8, currencyInfo = CC.coininfo( localStorage.cc_currency );
+
+			try{
+				var signKey 		= CC.coinkey.fromWif( key , currencyInfo.versions );
+			}catch(e){
+				console.log('error:', e)
+				$('#inputKey').closest('.control-group').addClass('error');
+				return;
+			}
+
+			try{
+				var redeemScript 	= new CC.script(redeemScriptHex);
+			}catch(e){
+				$('#inputRedeemScript').closest('.control-group').addClass('error');
+				return;
+			}
+
+			var publicKeys = redeemScript.scriptListPubkey(), pkeysHex=[];
+			_.each(publicKeys, function(k){
+				pkeysHex.push( CC.toHex(k) )
+			});
+
+			console.log('publicKeys', publicKeys, pkeysHex)
+			console.log(" createmultisig 2 '"+ JSON.stringify(pkeysHex)+"'");
+			
+			//create a transaction
+			try{
+				var toScript 		= CC.script.createOutputScript(address);
+			}catch(e){
+				console.log('error:', e, e.stack)
+				$('#inputAddress').closest('.control-group').addClass('error');
+				return;
+			}
+
+			localStorage.cc_ps1_address = address;
+
+			var tx = new CC.Transaction({
+				version:1,
+				outs:[{
+					script: toScript,
+					value: CC.multiply(amount, scale)+''
+				}]
+			});
+
+			tx.addInput({hash: txinhash}, vout);
+
+			console.log('redeemScript', redeemScript, redeemScriptHex);
+
+			var inputIndex = 0;
+
+			//sign with one key
+			tx.signMultiSig(inputIndex, redeemScript, signKey);
+			var isComplete = tx.isSigningComplete(inputIndex);
+			$('#signingInfo').html('Is complete: '+ (isComplete?'Yes':'No'));
+
+			var rawTx = tx.toHex();
+			console.log('rawTx:', rawTx)
+
+			$('#inputRawTx').val(rawTx);
+			localStorage.cc_partialySignedRawTx = rawTx;
+
+			$('#nextBtn').show();
+		}
+	</script>
+</body>
+</html>

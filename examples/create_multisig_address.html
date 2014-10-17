@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="js/bootstrap/css/bootstrap.min.css" />
+	
+	<script type="text/javascript" src="js/jquery.min.js"></script>
+	<script type="text/javascript" src="js/bootstrap/bootstrap.min.js"></script>
+	<script type="text/javascript" src="js/underscore-min.js"></script>
+	<script type="text/javascript" src="../cc-min.js"></script>
+</head>
+<body>
+	<div class="container">
+		<h4>Step 1: Create Multi-signature Address</h4>
+		<p class="alert alert-warning">Be carefull! Private keys will be saved in browser's local Storage, <b>reset keys when you have completed all the steps.</b></p>
+		<form class="form-horizontal" id="form" onsubmit="return false">
+			<div class="control-group">
+				<label class="control-label" for="inputCurrency">Currency</label>
+				<div class="controls">
+					<select class="input-xxlarge"  name="inputCurrency" id="inputCurrency">
+						<option value="LTC" selected>LTC</option>
+						<option value="BTC">BTC</option>
+					</select>
+				</div>
+			</div>
+			<div class="control-group">
+				<label class="control-label" for="inputKey1">Private key 1</label>
+				<div class="controls">
+					<input class="input-xxlarge"  name="key1" type="text" id="inputKey1" placeholder="Private key 1">
+					<div class="small" id="inputPubKey1"></div>
+				</div>
+			</div>
+			
+			<div class="control-group">
+				<label class="control-label" for="inputKey2">Private key 2</label>
+				<div class="controls">
+					<input class="input-xxlarge" name="key2" type="text" id="inputKey2" placeholder="Private key 2">
+					<div class="small" id="inputPubKey2"></div>
+				</div>
+			</div>
+			<div class="control-group">
+				<label class="control-label" for="inputKey3">Private key 3</label>
+				<div class="controls">
+					<input class="input-xxlarge"  name="key3" type="text" id="inputKey3" placeholder="Private key 3">
+					<div class="small" id="inputPubKey3"></div>
+				</div>
+			</div>
+			<div class="control-group">
+				<div class="controls">
+					<button type="submit" class="btn btn-primary" id="btnCreate">Create Multisignature Address</button>
+					<button type="submit" class="btn btn-danger" id="btnResetKeys">Reset keys</button>
+				</div>
+			</div>
+			<div class="control-group">
+				<label class="control-label" for="inputAddress">Address</label>
+				<div class="controls">
+					<input class="input-xxlarge" readonly name="inputAddress" type="text" id="inputAddress">
+				</div>
+			</div>
+			<div class="control-group">
+				<label class="control-label" for="inputRedeemScript">Redeem Script</label>
+				<div class="controls">
+					<input class="input-xxlarge" readonly name="inputRedeemScript" type="text" id="inputRedeemScript">
+				</div>
+			</div>
+			<div class="control-group hide" id="nextBtn">
+				<div class="controls">
+					<a link="create_tx_partial_sign_at_server.html" class="btn" id="btnNext">Next ></a>
+				</div>
+			</div>
+		</form>
+	</div>
+	<script type="text/javascript">
+		$(document).ready(function(){
+			if (localStorage.cc_privatekeys) {
+				var keys = localStorage.cc_privatekeys.split(',');
+				$('[name="key1"]').val(keys[0]);
+				$('[name="key2"]').val(keys[1]);
+				$('[name="key3"]').val(keys[2]);
+			};
+			if (localStorage.cc_currency) {
+				$('[name="inputCurrency"]').val(localStorage.cc_currency);
+			};
+		});
+		$('#btnResetKeys').on('click', function(){
+			localStorage.cc_privatekeys = '';
+			window.location.reload();
+		});
+		$('#btnNext').on('click', function(){
+			if (confirm('Have you sent some funds to this multisig address \n' +$('[name="inputAddress"]').val()+' ? \n\nAs next step is spending from this address.')) {
+				window.location.href = $(this).attr('link');
+			};
+		});
+		$('#btnCreate').on('click', function(){
+			var scale 	= 1e8;
+			//var data = $('#form').seraileize();
+			var $form = $('#form');
+			$form.find('.control-group').removeClass('error');
+			var keys = {
+				key1: $('[name="key1"]').val(),
+				key2: $('[name="key2"]').val(),
+				key3: $('[name="key3"]').val()
+			}
+			$('#nextBtn').hide();
+
+			localStorage.cc_currency = $('[name="inputCurrency"]').val();
+
+			if (!keys.key1 || !keys.key2 || !keys.key3) {
+				alert('Invalid keys')
+				return;
+			};
+			keys = [keys.key1, keys.key2, keys.key3];
+			localStorage.cc_privatekeys = keys.join(',');
+			var SIGHASH_ALL = 1;
+			var pubKeys = [], pubKeysHex = [], inValidKey=false, hex, currencyInfo = CC.coininfo( localStorage.cc_currency );
+
+			_.each(keys, function(wif, index){
+
+				if (inValidKey) {
+					return;
+				};
+
+				try{
+					var k = CC.coinkey.fromWif( wif, currencyInfo.versions );
+				}catch(e){
+					inValidKey = index+1;
+					return;
+				}
+				//k.compressed = false
+				hex = k.publicKey.toString('hex');
+				$('#inputPubKey'+(index+1)+'').html('PubKey: '+hex)
+
+				console.log('publicAddress', k.publicAddress)
+				pubKeys.push(k.publicKey.toJSON().data);
+			});
+
+			if (inValidKey) {
+				alert('Private Key - '+inValidKey+' is invalid')
+				$('[name="key'+inValidKey+'"]').closest('.control-group').addClass('error')
+				return;
+			};
+
+			pubKeys 	= pubKeys.sort();
+
+			var result 	= CC.createMultiSig(2, pubKeys);
+
+			$('[name="inputAddress"]').val(result.address);
+			$('[name="inputRedeemScript"]').val(result.redeemScript);
+
+			localStorage.cc_multisigAddress = result.address;
+			localStorage.cc_redeemScript 	= result.redeemScript;
+
+			_.each(pubKeys, function(k){
+				pubKeysHex.push( CC.toHex(k) )
+			});
+
+			$('#nextBtn').show();
+			console.log(" createmultisig 2 '"+ JSON.stringify( pubKeysHex )+"'");
+		});
+	</script>
+</body>
+</html>
