@@ -116,7 +116,6 @@ Script.createMultiSigInputScript = function(signatures, script) {
   k = m - (Opcode.map.OP_1 - 1)
   if (k > signatures.length){
     console.log('Not enough sigs')
-    //return false; //Not enough sigs
   }
   var inScript = new Script();
   inScript.writeOp(Opcode.map.OP_0);

@@ -3736,12 +3736,10 @@ var Address			  = require('btc-transaction/node_modules/btc-address');
 var cryptoHash 		= require('btc-transaction/node_modules/btc-script/node_modules/crypto-hashing');
 var Opcode 			  = require('btc-transaction/node_modules/btc-opcode');
 var TransactionIn	= require('btc-transaction/lib/transaction-in');
-var TransactionOut	= require('btc-transaction/lib/transaction-out');
+var TransactionOut= require('btc-transaction/lib/transaction-out');
 var bufferutils 	= require('./bufferutils');
-var bs58			= require('bs58');
-//var ecurve 			= require('ecurve');
+var bs58			    = require('bs58');
 var BigInteger 		= require('bigi');
-//var ecparams 		= ecurve.getECParams('secp256k1');
 var SIGHASH_ALL 	= 1;
 var sha256 			= cryptoHash.sha256;
 
@@ -3846,7 +3844,6 @@ Script.createMultiSigInputScript = function(signatures, script) {
   k = m - (Opcode.map.OP_1 - 1)
   if (k > signatures.length){
     console.log('Not enough sigs')
-    //return false; //Not enough sigs
   }
   var inScript = new Script();
   inScript.writeOp(Opcode.map.OP_0);
@@ -4172,10 +4169,10 @@ module.exports.coininfo		= coininfo;
 module.exports.ecdsa 		  = ecdsa;
 module.exports.script 		= Script;
 
-module.exports.multiply 		= multiply;
-module.exports.toBuffer 		= toBuffer;
-module.exports.toHex 			= toHex;
-module.exports.toBytes 			= toBytes;
+module.exports.multiply 		    = multiply;
+module.exports.toBuffer 		    = toBuffer;
+module.exports.toHex 			      = toHex;
+module.exports.toBytes 			    = toBytes;
 module.exports.createMultiSig 	= createMultiSig;
 module.exports.recoverPublicKey = recoverPublicKey;
 
