@@ -135,6 +135,14 @@ Transaction.prototype.getRedeemScript = function(inputIndex){
   return redeemScript;
 }
 
+Transaction.prototype.getInputSignatures = function(inputIndex){
+  if (!this.ins[inputIndex] || !this.ins[inputIndex].script) {
+    return [];
+  };
+
+  return this.ins[inputIndex].script.getSignatureList();
+}
+
 Transaction.prototype.isSigningComplete = function(inputIndex){
   inputIndex = inputIndex || 0;
   var redeemScript = this.getRedeemScript(inputIndex);
@@ -143,7 +151,7 @@ Transaction.prototype.isSigningComplete = function(inputIndex){
   };
   var m = redeemScript.chunks[0];
   k = m - (Opcode.map.OP_1 - 1)
-  var signatures = this.ins[inputIndex].script.getSignatureList();
+  var signatures = this.getInputSignatures(inputIndex);
 
   return k <= signatures.length;
 }
