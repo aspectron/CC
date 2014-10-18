@@ -3815,12 +3815,43 @@ Address.prototype.decodeString = function(string, network) {
 
 Script.prototype.getSignatureList = function(){
 	var list = [], chunks = this.chunks;
-	if (chunks[0]==0 && chunks[chunks.length-1][chunks[chunks.length-1].length-1]==174){
+	if (chunks[0]==0 && chunks[chunks.length-1][chunks[chunks.length-1].length-1] == Opcode.map.OP_CHECKMULTISIG){
 		for(var i=1;i<chunks.length-1;i++){				
 			list.push(chunks[i]);
 		}
 	}
 	return list;
+}
+
+Script.prototype.getMinSigRequired = function(){
+  var m = this.chunks[0];
+  return m - (Opcode.map.OP_1 - 1)
+}
+
+Script.prototype.toAddress = function(network) {
+  var outType = this.getOutType();
+  if (outType == 'pubkeyhash') {
+    return new Address(this.chunks[2], 'pubkeyhash', network || Script.defaultNetwork)
+  } else if (outType == 'pubkey') {
+    // convert pubkey into a pubkeyhash and do address
+    return new Address(cryptoHash.sha256ripe160(this.chunks[0], {
+        out: 'bytes'
+      }),
+      'pubkeyhash', network || Script.defaultNetwork)
+  } else if (outType == 'scripthash') {
+    return new Address(this.chunks[1], 'scripthash', network || Script.defaultNetwork)
+  } else if (outType == 'multisig'){
+    return createMultiSig(this.getMinSigRequired(), this.scriptListPubkey());
+  } else {
+    return false
+  }
+}
+
+Script.prototype.isSigningComplete = function(){
+  var minSigRequired = this.getMinSigRequired();
+  var signatures  = this.getSignatureList();
+
+  return minSigRequired <= signatures.length;
 }
 
 Script.prototype.scriptListPubkey = function(){
@@ -3859,7 +3890,7 @@ Transaction.prototype.getRedeemScript = function(inputIndex){
     return false;
   };
   var chunks        = this.ins[inputIndex].script.chunks;
-  var redeemScript  = (chunks[chunks.length-1]==174) ? this.ins[inputIndex].script : new CC.script(chunks[chunks.length-1]);
+  var redeemScript  = (chunks[chunks.length-1] == Opcode.map.OP_CHECKMULTISIG ) ? this.ins[inputIndex].script : new CC.script(chunks[chunks.length-1]);
   return redeemScript;
 }
 
@@ -3877,11 +3908,8 @@ Transaction.prototype.isSigningComplete = function(inputIndex){
   if (!redeemScript) {
     return false;
   };
-  var m = redeemScript.chunks[0];
-  k = m - (Opcode.map.OP_1 - 1)
-  var signatures = this.getInputSignatures(inputIndex);
 
-  return k <= signatures.length;
+  return redeemScript.isSigningComplete();
 }
 
 Transaction.prototype.p2shsign = function(index, script, key, type) {
