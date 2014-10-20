@@ -128,10 +128,11 @@
 				}
 				//k.compressed = false
 				hex = k.publicKey.toString('hex');
-				$('#inputPubKey'+(index+1)+'').html('PubKey: '+hex)
+				$('#inputPubKey'+(index+1)+'').html('PubKey: '+hex +'<br>Address: '+k.publicAddress+'<br> PrivateExportKey: '+k.privateExportKey.toString('hex')+'<br>PrivateWif: '+k.privateWif)
 
 				console.log('publicAddress', k.publicAddress)
-				pubKeys.push(k.publicKey.toJSON().data);
+				pubKeys.push(CC.binstring(hex, {in:'hex', out:'bytes'}));
+
 			});
 
 			if (inValidKey) {

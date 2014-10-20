@@ -476,6 +476,7 @@ module.exports.coinkey 		= coinkey;
 module.exports.coininfo		= coininfo;
 module.exports.ecdsa 		  = ecdsa;
 module.exports.script 		= Script;
+module.exports.binstring  = binstring;
 
 module.exports.multiply 		    = multiply;
 module.exports.toBuffer 		    = toBuffer;
