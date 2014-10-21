@@ -1,0 +1,4 @@
+CC
+==
+
+Cryptocoin for FUG
