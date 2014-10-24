@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="js/bootstrap/css/bootstrap.min.css" />
+	
+	<script type="text/javascript" src="js/jquery.min.js"></script>
+	<script type="text/javascript" src="js/bootstrap/bootstrap.min.js"></script>
+	<script type="text/javascript" src="js/underscore-min.js"></script>
+	<script type="text/javascript" src="../cc-min.js"></script>
+</head>
+<body>
+	<div class="container">
+		<h4>Step 4: Sign a Partialy signed transaction for spending from Multi-signature Address <br> Signing step 2</h4>
+		<p class="alert alert-warning">Be carefull! Private keys will be saved in browser's local Storage, <b>reset keys when you have completed all the steps.</b></p>
+		<form class="form-horizontal" id="form" onsubmit="return false">
+			<div class="control-group">
+				<label class="control-label" for="inputCurrency">Currency</label>
+				<div class="controls">
+					<select class="input-xxlarge"  name="inputCurrency" id="inputCurrency">
+						<option value="LTC" selected>LTC</option>
+						<option value="BTC">BTC</option>
+					</select>
+				</div>
+			</div>
+			<fieldset>
+				<legend>Input</legend>
+				<div class="control-group">
+					<label class="control-label" for="inputRedeemScript">Redeem Script</label>
+					<div class="controls">
+						<textarea class="input-xxlarge" name="inputRedeemScript" type="text" id="inputRedeemScript" rows="7">522102a3cb603e9d8e0f8f5aff9d660a0aef7f62b7e7904a84891fe586c8476f8477d72102b2d15168997a92ef4846a6cfa3f984cdec3acc798fff512fbe067118dc37f3f42102efac98cba181f42ede6c0ca73923a836ca45bcf89d63c5fcd4e021674a60446e53ae</textarea>
+					</div>
+				</div>
+				<div class="control-group">
+					<label class="control-label" for="inputPassphrase">Passphrase</label>
+					<div class="controls">
+						<input class="input-xxlarge"  name="inputPassphrase" type="text" id="inputPassphrase" placeholder="Passphrase" value="a!@#$%^&*()s11dewqe">
+						<span class="help-block">Passphrase to sign the transaction.</span>
+					</div>
+				</div>
+			</fieldset>
+			<div class="control-group">
+				<div class="controls">
+					<button type="submit" class="btn btn-primary" id="btnGetPublickey">Get Public key</button>
+				</div>
+			</div>
+			<div class="control-group">
+				<label class="control-label" for="inputSigningKey">Signing key</label>
+				<div class="controls">
+					<textarea class="input-xxlarge" readonly name="inputSigningKey" type="text" id="inputSigningKey" rows="7"></textarea>
+					<b id="signingInfo" class="text-info"></b>
+					<br><br>
+				</div>
+			</div>
+		</form>
+	</div>
+	<script type="text/javascript">
+		$(document).ready(function(){
+		});
+
+		$('#btnGetPublickey').on('click', function(){
+			var rs 			= $('#inputRedeemScript').val();
+			var passphrase 	= $('#inputPassphrase').val();
+			localStorage.cc_currency = $('[name="inputCurrency"]').val();
+
+			$('.control-group').removeClass('error');
+			if (!rs) {
+				$('#inputRedeemScript').closest('.control-group').addClass('error');
+				return;
+			};
+			if (!passphrase) {
+				$('#inputPassphrase').closest('.control-group').addClass('error');
+				return;
+			};
+
+			var redeemScript 	= new CC.script(rs);
+			var signKey 		= redeemScript.getSigningKeyForPassphrase( passphrase );
+
+			if (!signKey)
+				return console.log('Passphrase is wrong.');
+
+			console.log('signKey found: ', signKey.publicKey.toString('hex'))
+		});
+	</script>
+</body>
+</html>
