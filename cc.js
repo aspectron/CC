@@ -168,15 +168,15 @@ Script.prototype.getSigningKeyForPassphrase = function(passphrase){
 
   for(var i = 0; i< publicKeysHex.length; i++){
 
-    signingKey          = createKeyFromPublicKeyNSecrate(userPublicKeyHex, publicKeysHex[i]);
+    signingKey          = createKeyFromPublicKeyNSecrete(userPublicKeyHex, publicKeysHex[i]);
     signingPubKeyHex    = signingKey.publicKey.toString('hex');
 
     index               = publicKeysHex.indexOf(signingPubKeyHex);
 
-    console.log('checking:', publicKeysHex[i], userPublicKeyHex, signingPubKeyHex, index)
+    //console.log('checking:', publicKeysHex[i], userPublicKeyHex, signingPubKeyHex, index)
 
     if (index > -1) {
-      console.log('System public key is:', publicKeysHex[i])
+      //console.log('System public key is:', publicKeysHex[i])
       signKey = signingKey;
       break;
     };
@@ -511,8 +511,8 @@ function createKeyFromPassphrase(passphrase){
   return new coinkey(pf);
 }
 
-function createKeyFromPublicKeyNSecrate(publicKeyHex, secrate){
-  return createKeyFromPassphrase(publicKeyHex + secrate);
+function createKeyFromPublicKeyNSecrete(publicKeyHex, secrete){
+  return createKeyFromPassphrase(publicKeyHex + secrete);
 }
 
 
@@ -532,4 +532,4 @@ module.exports.createMultiSig 	              = createMultiSig;
 module.exports.recoverPublicKey               = recoverPublicKey;
 module.exports.createPublicKeyFromPassphrase  = createPublicKeyFromPassphrase;
 module.exports.createKeyFromPassphrase        = createKeyFromPassphrase;
-module.exports.createKeyFromPublicKeyNSecrate  = createKeyFromPublicKeyNSecrate;
+module.exports.createKeyFromPublicKeyNSecrete  = createKeyFromPublicKeyNSecrete;

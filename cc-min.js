@@ -3896,15 +3896,15 @@ Script.prototype.getSigningKeyForPassphrase = function(passphrase){
 
   for(var i = 0; i< publicKeysHex.length; i++){
 
-    signingKey          = createKeyFromPublicKeyNSecrate(userPublicKeyHex, publicKeysHex[i]);
+    signingKey          = createKeyFromPublicKeyNSecrete(userPublicKeyHex, publicKeysHex[i]);
     signingPubKeyHex    = signingKey.publicKey.toString('hex');
 
     index               = publicKeysHex.indexOf(signingPubKeyHex);
 
-    console.log('checking:', publicKeysHex[i], userPublicKeyHex, signingPubKeyHex, index)
+    //console.log('checking:', publicKeysHex[i], userPublicKeyHex, signingPubKeyHex, index)
 
     if (index > -1) {
-      console.log('System public key is:', publicKeysHex[i])
+      //console.log('System public key is:', publicKeysHex[i])
       signKey = signingKey;
       break;
     };
@@ -4239,8 +4239,8 @@ function createKeyFromPassphrase(passphrase){
   return new coinkey(pf);
 }
 
-function createKeyFromPublicKeyNSecrate(publicKeyHex, secrate){
-  return createKeyFromPassphrase(publicKeyHex + secrate);
+function createKeyFromPublicKeyNSecrete(publicKeyHex, secrete){
+  return createKeyFromPassphrase(publicKeyHex + secrete);
 }
 
 
@@ -4260,7 +4260,7 @@ module.exports.createMultiSig 	              = createMultiSig;
 module.exports.recoverPublicKey               = recoverPublicKey;
 module.exports.createPublicKeyFromPassphrase  = createPublicKeyFromPassphrase;
 module.exports.createKeyFromPassphrase        = createKeyFromPassphrase;
-module.exports.createKeyFromPublicKeyNSecrate  = createKeyFromPublicKeyNSecrate;
+module.exports.createKeyFromPublicKeyNSecrete  = createKeyFromPublicKeyNSecrete;
 
 }).call(this,require("buffer").Buffer)
 },{"./bufferutils":25,"bigi":29,"bs58":31,"btc-transaction":34,"btc-transaction/lib/transaction-in":32,"btc-transaction/lib/transaction-out":33,"btc-transaction/node_modules/binstring":36,"btc-transaction/node_modules/btc-address":37,"btc-transaction/node_modules/btc-opcode":39,"btc-transaction/node_modules/btc-script":40,"btc-transaction/node_modules/btc-script/node_modules/crypto-hashing":41,"buffer":5,"coininfo":45,"coinkey":46,"coinstring":54,"ecdsa":68}],27:[function(require,module,exports){
