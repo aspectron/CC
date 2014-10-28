@@ -231,12 +231,12 @@ Transaction.prototype.signMultiSig = function(inputIndex, redeemScript, key, typ
 	var signatures = this.ins[inputIndex].script.getSignatureList();
 	signatures.push(this.p2shsign(inputIndex, redeemScript, key, type));
 
-	console.log('beforeOrdering:signatures', signatures.map(function(s){return s.join(':')}))
+	//console.log('beforeOrdering:signatures', signatures.map(function(s){return s.join(':')}))
 
 	//getting signatures in correct order
 	signatures = this.getOrderedSig(signatures, inputIndex, redeemScript, type);
 
-	console.log('afterOrdering:signatures', signatures.map(function(s){return s.join(':')}))
+	//console.log('afterOrdering:signatures', signatures.map(function(s){return s.join(':')}))
 
 	this.ins[inputIndex].script = Script.createMultiSigInputScript(signatures, redeemScript);
 }
@@ -507,7 +507,7 @@ function createPublicKeyFromPassphrase(passphrase){
 }
 
 function createKeyFromPassphrase(passphrase){
-  var pf = sha256.x2( cryptoHash.ripemd160( bs58.encode(passphrase) , {out:'bytes'}) );
+  var pf = sha256.x2( cryptoHash.ripemd160( passphrase , {out:'bytes'}) );
   return new coinkey(pf);
 }
 
@@ -533,3 +533,4 @@ module.exports.recoverPublicKey               = recoverPublicKey;
 module.exports.createPublicKeyFromPassphrase  = createPublicKeyFromPassphrase;
 module.exports.createKeyFromPassphrase        = createKeyFromPassphrase;
 module.exports.createKeyFromPublicKeyNSecrete  = createKeyFromPublicKeyNSecrete;
+
