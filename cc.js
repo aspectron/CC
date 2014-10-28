@@ -119,13 +119,6 @@ Script.prototype.toAddress = function(network) {
   }
 }
 
-Script.prototype.isSigningComplete = function(){
-  var minSigRequired = this.getMinSigRequired();
-  var signatures  = this.getSignatureList();
-
-  return minSigRequired <= signatures.length;
-}
-
 Script.prototype.scriptListPubkey = function(){
 	var r = [];
 	for(var i=1; i < this.chunks.length-2; i++){
@@ -192,8 +185,9 @@ Transaction.prototype.getRedeemScript = function(inputIndex){
   if (!this.ins[inputIndex] || !this.ins[inputIndex].script) {
     return false;
   };
-  var chunks        = this.ins[inputIndex].script.chunks;
-  var redeemScript  = (chunks[chunks.length-1] == Opcode.map.OP_CHECKMULTISIG ) ? this.ins[inputIndex].script : new CC.script(chunks[chunks.length-1]);
+  var script        = this.ins[inputIndex].script;
+  var chunks        = script.chunks;
+  var redeemScript  = (chunks[chunks.length-1] == Opcode.map.OP_CHECKMULTISIG ) ? script : new Script(chunks[chunks.length-1]);
   return redeemScript;
 }
 
@@ -212,7 +206,24 @@ Transaction.prototype.isSigningComplete = function(inputIndex){
     return false;
   };
 
-  return redeemScript.isSigningComplete();
+  var script = this.ins[inputIndex].script;
+
+  var minSigRequired  = redeemScript.getMinSigRequired();
+  var signatures      = script.getSignatureList();
+  console.log('minSigRequired <= signatures.length', {minSigRequired: minSigRequired, signatureslength: signatures.length})
+  return minSigRequired <= signatures.length;
+}
+
+Transaction.prototype.isReadyForBroadcast = function(){
+  var vinCompleted = 0;
+
+  for(var inputIndex = 0; inputIndex < this.ins.length; inputIndex++){
+    if (this.isSigningComplete(inputIndex)) {
+      vinCompleted++;
+    };
+  }
+
+  return vinCompleted == this.ins.length;
 }
 
 Transaction.prototype.p2shsign = function(index, script, key, type) {
@@ -278,7 +289,6 @@ Transaction.prototype.getOrderedSig = function(signatures, inputIndex, redeemScr
 	//console.log('orderedSignatures', orderedSignatures.join("\n")+'');
 	return orderedSignatures;
 }
-
 
 Transaction.prototype.toBuffer = function () {
   var txInSize = this.ins.reduce(function(a, x) {
