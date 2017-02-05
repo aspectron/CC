@@ -1,4 +1,4 @@
 CC
 ==
 
-Cryptocoin for FUG
+Cryptocoin (Client-side code for handling transactions)
